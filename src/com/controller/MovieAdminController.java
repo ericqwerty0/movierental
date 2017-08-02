@@ -58,6 +58,7 @@ public class MovieAdminController {
 				movies.add(movie);
 
 			}
+			con.close();
 		} catch (Exception e) {
 			System.out.println("Error:" + e);
 		}
@@ -143,6 +144,7 @@ public class MovieAdminController {
 					}
 
 				}
+				con.close();
 			} catch (Exception e) {
 				System.out.println("Error:" + e);
 				databaseError = true;
@@ -202,6 +204,7 @@ public class MovieAdminController {
 
 				}
 			}
+			con.close();
 		} catch (Exception e) {
 			System.out.println("Error:" + e);
 		}
@@ -212,19 +215,19 @@ public class MovieAdminController {
 	}
 	
 	@RequestMapping(value = "/updateMovie", params = "update", method = RequestMethod.POST)
-	public String updateMovie(@RequestParam(value = "id", required = false) Integer[] id,
+	public ModelAndView updateMovie(@RequestParam(value = "id", required = false) Integer[] id,
 			@RequestParam(value = "year", required = false) String[] year,
 			@RequestParam(value = "country", required = false) String[] country,
 			@RequestParam(value = "type", required = false) String[] type,
 			@RequestParam(value = "rent", required = false) String[] rent,
-			@RequestParam(value = "rating", required = false) String[] rating,
-			ModelMap model) {
+			@RequestParam(value = "rating", required = false) String[] rating) {
 		System.out.println("updateMovie() starts.");
 		String doubleCheck = "[\\x00-\\x20]*[+-]?(((((\\p{Digit}+)(\\.)?((\\p{Digit}+)?)([eE][+-]?(\\p{Digit}+))?)|(\\.((\\p{Digit}+))([eE][+-]?(\\p{Digit}+))?)|(((0[xX](\\p{XDigit}+)(\\.)?)|(0[xX](\\p{XDigit}+)?(\\.)(\\p{XDigit}+)))[pP][+-]?(\\p{Digit}+)))[fFdD]?))[\\x00-\\x20]*";
 		int number = 0;
-		String s = null;
 		boolean dataError = false;
 		boolean databaseError = false;
+		ModelAndView model = null;
+		List<Movie> movieList = new ArrayList<Movie>();
 		Integer[] yearS = new Integer[year.length];
 		Double[] rentS = new Double[rent.length];
 		Double[] ratingS = new Double[rating.length];
@@ -246,9 +249,31 @@ public class MovieAdminController {
 			}
 		}
 		if(dataError){
-			s = "movieUpdate";
-			
-			model.addAttribute("error", "Input data error,please try again");
+			model = new ModelAndView("movieUpdate");
+			try {
+				con = AdminDBConnection.DBC();
+				PreparedStatement pstmt = con.prepareStatement("select * from movie where id = ?");
+				for (Integer i : id) {
+					pstmt.setInt(1, i);
+					ResultSet rs = pstmt.executeQuery();
+					while (rs.next()) {
+						Movie movie = new Movie();
+						movie.setId(rs.getInt("id"));
+						movie.setName(rs.getString("name"));
+						movie.setYear(rs.getInt("year"));
+						movie.setCountry(rs.getString("country"));
+						movie.setType(rs.getString("type"));
+						movie.setRating(rs.getDouble("rating"));
+						movie.setRent(rs.getDouble("rent"));
+						movieList.add(movie);
+
+					}
+				}
+			} catch (Exception e) {
+				System.out.println("Error:" + e);
+			}
+			model.addObject("updateList", movieList);
+			model.addObject("error", "Input data error,please try again");
 		} else {
 			List<Movie> updates = new ArrayList<Movie>();
 			for (int i = 0; i < year.length; i++) {
@@ -263,7 +288,6 @@ public class MovieAdminController {
 				System.out.println(i);
 			}
 			try {
-				con = AdminDBConnection.DBC();
 				PreparedStatement pstmt = con.prepareStatement(
 						"Update movie SET year = ?, country = ?, type = ?, rent = ?, rating = ?WHERE id = ?");
 				for (Movie u : updates) {
@@ -286,16 +310,38 @@ public class MovieAdminController {
 				databaseError = true;
 			}
 			if (databaseError) {
-				model.addAttribute("error", "Cannot delete selected record, please try again or contact support.");
-				s = "movieUpdate";
+				model = new ModelAndView("movieUpdate");
+				model.addObject("error", "Cannot update selected record, please try again or contact support.");
+				try {
+					PreparedStatement pstmt = con.prepareStatement("select * from movie where id = ?");
+					for (Integer i : id) {
+						pstmt.setInt(1, i);
+						ResultSet rs = pstmt.executeQuery();
+						while (rs.next()) {
+							Movie movie = new Movie();
+							movie.setId(rs.getInt("id"));
+							movie.setName(rs.getString("name"));
+							movie.setYear(rs.getInt("year"));
+							movie.setCountry(rs.getString("country"));
+							movie.setType(rs.getString("type"));
+							movie.setRating(rs.getDouble("rating"));
+							movie.setRent(rs.getDouble("rent"));
+							movieList.add(movie);
+
+						}
+					}
+				} catch (Exception e) {
+					System.out.println("Error:" + e);
+				}
+			model.addObject("updateList", movieList);
 			} else {
-				s = "modifyResult";
-				model.addAttribute("number", number);
-				model.addAttribute("action", "updated");
+				model = new ModelAndView("modifyResult");
+				model.addObject("number", number);
+				model.addObject("action", "updated");
 			}
 		}
 		System.out.println("updateMovie() ends.");
-		return s;
+		return model;
 	}
 
 	@RequestMapping(value = "/updateMovie", params = "cancel", method = RequestMethod.POST)
@@ -341,6 +387,7 @@ public class MovieAdminController {
 
 				}
 			}
+			con.close();
 		} catch (Exception e) {
 			System.out.println("Error:" + e);
 		}
@@ -375,6 +422,7 @@ public class MovieAdminController {
 				}else{
 					number += j;
 				}
+                con.close();
 			}
 
 		} catch (Exception e) {
@@ -395,11 +443,7 @@ public class MovieAdminController {
 	
 	@RequestMapping(value = "/logout", method = RequestMethod.POST)
 	public String logoutRedirect(){
-		try {
-			con.close();
-		} catch (SQLException e) {
-			System.out.println("Error:" + e);
-		}
+		
 		System.out.println("redirect to loginController.");
 		return "redirect:/login/logout";
 	}

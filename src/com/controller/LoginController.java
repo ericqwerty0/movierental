@@ -124,7 +124,7 @@ public class LoginController {
 					model.addAttribute("error", "Invalid username or password!");
 				}
 			}
-
+			con.close();
 		} catch (Exception e) {
 			System.out.println("Error:" + e);
 		}
@@ -176,6 +176,7 @@ public class LoginController {
 						s = "registerSuccess";
 					}
 				}
+				con.close();
 			}catch (Exception e) {
 				System.out.println("Error:" + e);
 				model.addAttribute("error", "Cannot register,please try again or contact support");
@@ -199,11 +200,6 @@ public class LoginController {
 	public ModelAndView timeout(HttpSession session) {
 		System.out.println("timeout() starts.");
 		ModelAndView model = new ModelAndView("index");
-		try {
-			con.close();
-		} catch (SQLException e) {
-			System.out.println("Error:" + e);
-		};
 		session.invalidate();
 		model.addObject("error", "Session expired.Please login again");
 		System.out.println("timeout() ends.");
@@ -213,11 +209,6 @@ public class LoginController {
 	public ModelAndView logout(HttpSession session) {
 		System.out.println("logout() starts.");
 		ModelAndView model = new ModelAndView("index");
-		try {
-			con.close();
-		} catch (SQLException e) {
-			System.out.println("Error:" + e);
-		};
 		session.invalidate();
 		model.addObject("msg", "You've been logged out successfully.");
 		System.out.println("logout() ends.");
